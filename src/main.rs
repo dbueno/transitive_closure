@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
-use std::{error::Error, io, process};
+use serde::Deserialize;
+use std::{error::Error, io};
 
 #[derive(Debug, Deserialize, Clone)]
 struct Edge {
@@ -8,25 +8,28 @@ struct Edge {
 }
 
 fn example() -> Result<(), Box<dyn Error>> {
+    let mut db = transitive_closure::Database::new();
+
     // Build the CSV reader and iterate over each record.
     let mut rdr = csv::ReaderBuilder::new()
         .delimiter(b'\t')
         .has_headers(false)
         .from_reader(io::stdin());
-    let mut edges = Vec::new();
     for result in rdr.deserialize() {
         // The iterator yields Result<StringRecord, Error>, so we check the
         // error here.
         let record: Edge = result?;
-        edges.push(record.clone());
-        println!("{:?}", record);
+        db.insert_edge(record.src, record.dst);
+        println!("Database: {:#?}", &db)
     }
     Ok(())
 }
 
 fn main() {
-    if let Err(err) = example() {
-        println!("error running example: {}", err);
-        process::exit(1);
+    match example() {
+        Ok(_)=> {}
+        Err(err) => {
+            println!("Error: {}", err);
+        }
     }
 }
