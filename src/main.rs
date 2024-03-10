@@ -7,7 +7,7 @@ struct Edge {
     dst: String,
 }
 
-fn example() -> Result<(), Box<dyn Error>> {
+fn example() -> Result<transitive_closure::Relation, Box<dyn Error>> {
     let mut db = transitive_closure::Database::new();
 
     // Build the CSV reader and iterate over each record.
@@ -19,15 +19,25 @@ fn example() -> Result<(), Box<dyn Error>> {
         // The iterator yields Result<StringRecord, Error>, so we check the
         // error here.
         let record: Edge = result?;
-        db.insert_edge(record.src, record.dst);
-        println!("Database: {:#?}", &db)
+        let changed = db.insert_edge(record.src, record.dst);
+        //println!("Database: {} {:#?}", changed, &db)
     }
-    Ok(())
+    let closure = transitive_closure::closure(&mut db);
+    Ok(closure)
 }
 
 fn main() {
     match example() {
-        Ok(_)=> {}
+        Ok(closure) => {
+            dbg!(&closure);
+            let mut wtr = csv::WriterBuilder::new()
+                .delimiter(b'\t')
+                .has_headers(false)
+                .from_writer(io::stdout());
+            for record in &closure.tuples {
+                wtr.serialize(record);
+            }
+        }
         Err(err) => {
             println!("Error: {}", err);
         }
